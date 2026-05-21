@@ -1,28 +1,8 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
-
-# ---------------------------------------------------
-# CUSTOM STYLING
-# ---------------------------------------------------
-
-st.markdown("""
-<style>
-
-.block-container {
-    padding-top: 2rem;
-}
-
-.stMetric {
-    background-color: white;
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0px 2px 8px rgba(0,0,0,0.08);
-}
-
-</style>
-""", unsafe_allow_html=True)
 
 # ---------------------------------------------------
 # LOAD DATASETS
@@ -46,6 +26,37 @@ life_df = pd.read_excel(
 )
 
 # ---------------------------------------------------
+# COMPUTE BASELINE RISKS
+# ---------------------------------------------------
+
+gene_mean = gene_df["Gene_score"].mean()
+
+gene_min = gene_df["Gene_score"].min()
+gene_max = gene_df["Gene_score"].max()
+
+base_gene_risk = (
+    (gene_mean - gene_min) /
+    (gene_max - gene_min)
+) * 0.3
+
+
+
+met_mean = met_df["Metabolite_score"].mean()
+
+met_min = met_df["Metabolite_score"].min()
+met_max = met_df["Metabolite_score"].max()
+
+base_met_risk = (
+    (met_mean - met_min) /
+    (met_max - met_min)
+) * 0.2
+
+baseline_life_risk = (
+    life_df["Lifestyle_score"].mean() /
+    life_df["Lifestyle_score"].max()
+)
+
+# ---------------------------------------------------
 # TITLE
 # ---------------------------------------------------
 
@@ -65,164 +76,163 @@ early atherosclerosis.
 st.markdown("---")
 
 # ---------------------------------------------------
-# INPUT SECTION
+# SIDEBAR USER INPUTS
 # ---------------------------------------------------
 
-st.header("🧍 Personalized Lifestyle Assessment")
+st.sidebar.header("🧍 Personalized Lifestyle Inputs")
 
-col1, col2, col3 = st.columns(3)
+smoking = st.sidebar.selectbox(
+    "Smoking Habit",
+    ["No", "Occasional", "Frequent"]
+)
 
-with col1:
+exercise = st.sidebar.selectbox(
+    "Exercise Frequency",
+    ["Regular", "Sometimes", "Rare"]
+)
 
-    smoking = st.selectbox(
-        "Smoking Habit",
-        ["No", "Occasional", "Frequent"]
-    )
+diet = st.sidebar.selectbox(
+    "Diet Quality",
+    ["Healthy", "Moderate", "Poor"]
+)
 
-    exercise = st.selectbox(
-        "Exercise Frequency",
-        ["Regular", "Sometimes", "Rare"]
-    )
+sleep = st.sidebar.slider(
+    "Sleep Hours",
+    3, 10, 7
+)
 
-    diet = st.selectbox(
-        "Diet Quality",
-        ["Healthy", "Moderate", "Poor"]
-    )
+bmi = st.sidebar.slider(
+    "BMI",
+    15.0, 40.0, 24.0
+)
 
-with col2:
+cholesterol = st.sidebar.slider(
+    "Cholesterol Level",
+    100, 350, 180
+)
 
-    sleep = st.slider(
-        "Sleep Hours",
-        3,
-        10,
-        7
-    )
-
-    bmi = st.slider(
-        "BMI",
-        15.0,
-        40.0,
-        24.0
-    )
-
-with col3:
-
-    cholesterol = st.slider(
-        "Cholesterol Level",
-        100,
-        350,
-        180
-    )
-
-    diabetes = st.selectbox(
-        "Diabetes",
-        ["No", "Yes"]
-    )
-
-st.markdown("---")
+diabetes = st.sidebar.selectbox(
+    "Diabetes",
+    ["No", "Yes"]
+)
 
 # ---------------------------------------------------
-# COMPUTE RISKS
-# ---------------------------------------------------
-
-gene_mean = gene_df["Gene_score"].mean()
-gene_min = gene_df["Gene_score"].min()
-gene_max = gene_df["Gene_score"].max()
-
-base_gene_risk = (
-    (gene_mean - gene_min) /
-    (gene_max - gene_min)
-) * 0.3
-
-met_mean = met_df["Metabolite_score"].mean()
-met_min = met_df["Metabolite_score"].min()
-met_max = met_df["Metabolite_score"].max()
-
-base_met_risk = (
-    (met_mean - met_min) /
-    (met_max - met_min)
-) * 0.2
-
-# ---------------------------------------------------
-# LIFESTYLE SCORE
+# PERSONALIZED LIFESTYLE SCORE
 # ---------------------------------------------------
 
 personal_lifestyle = 0
 
+# Smoking
 if smoking == "Frequent":
     personal_lifestyle += 3
 elif smoking == "Occasional":
     personal_lifestyle += 1
 
+# Exercise
 if exercise == "Rare":
     personal_lifestyle += 3
 elif exercise == "Sometimes":
     personal_lifestyle += 1
 
+# Diet
 if diet == "Poor":
     personal_lifestyle += 3
 elif diet == "Moderate":
     personal_lifestyle += 1
 
+# Sleep
 if sleep < 6:
     personal_lifestyle += 2
 
+# BMI
 if bmi > 30:
     personal_lifestyle += 3
 elif bmi > 25:
     personal_lifestyle += 1
 
+# Cholesterol
 if cholesterol > 240:
     personal_lifestyle += 3
 elif cholesterol > 200:
     personal_lifestyle += 1
 
+# Diabetes
 if diabetes == "Yes":
     personal_lifestyle += 3
 
+# Normalize
 personal_lifestyle = personal_lifestyle / 15
 
 # ---------------------------------------------------
-# FINAL RISKS
+# FINAL LIFESTYLE RISK
 # ---------------------------------------------------
+
+final_lifestyle_risk = personal_lifestyle 
+# Lifestyle dynamically affects omics
 
 gene_risk = (
     base_gene_risk *
-    (1 + personal_lifestyle)
+    (1 + final_lifestyle_risk)
 )
 
 met_risk = (
     base_met_risk *
-    (1 + (0.8 * personal_lifestyle))
+    (1 + (0.8 * final_lifestyle_risk))
 )
+
+
+# ---------------------------------------------------
+# OVERALL MULTI-OMICS RISK
+# ---------------------------------------------------
 
 overall_risk = (
     gene_risk +
     met_risk +
-    (0.7 * personal_lifestyle)
+    (0.7 * final_lifestyle_risk)
 )
-
 # ---------------------------------------------------
 # RISK CATEGORY
 # ---------------------------------------------------
 
 if overall_risk < 0.40:
-
     risk_label = "LOW RISK"
     risk_color = "green"
 
 elif overall_risk < 0.65:
-
     risk_label = "MODERATE RISK"
     risk_color = "orange"
 
 else:
-
     risk_label = "HIGH RISK"
     risk_color = "red"
 
 # ---------------------------------------------------
-# METRICS
+# DATASET OVERVIEW
+# ---------------------------------------------------
+
+st.header("📂 Dataset Overview")
+
+c1, c2, c3 = st.columns(3)
+
+c1.metric(
+    "Transcriptomics Samples",
+    len(gene_df)
+)
+
+c2.metric(
+    "Metabolomics Samples",
+    len(met_df)
+)
+
+c3.metric(
+    "Lifestyle Samples",
+    len(life_df)
+)
+
+st.markdown("---")
+
+# ---------------------------------------------------
+# RISK SUMMARY
 # ---------------------------------------------------
 
 st.header("📊 Integrated Risk Summary")
@@ -241,10 +251,8 @@ m2.metric(
 
 m3.metric(
     "Lifestyle Risk",
-    f"{personal_lifestyle:.2f}"
+    f"{final_lifestyle_risk:.2f}"
 )
-
-st.markdown("---")
 
 # ---------------------------------------------------
 # GAUGE CHART
@@ -267,10 +275,7 @@ gauge_fig = go.Figure(go.Indicator(
     }
 ))
 
-st.plotly_chart(
-    gauge_fig,
-    use_container_width=True
-)
+st.plotly_chart(gauge_fig, use_container_width=True)
 
 st.markdown(
     f"<h2 style='color:{risk_color};'>{risk_label}</h2>",
@@ -280,7 +285,45 @@ st.markdown(
 st.markdown("---")
 
 # ---------------------------------------------------
-# BAR CHART
+# RADAR CHART
+# ---------------------------------------------------
+
+st.header("📈 Multi-Omics Risk Profile")
+
+radar_categories = [
+    "Transcriptomics",
+    "Metabolomics",
+    "Lifestyle"
+]
+
+radar_values = [
+    gene_risk,
+    met_risk,
+    final_lifestyle_risk
+]
+
+radar_fig = go.Figure()
+
+radar_fig.add_trace(go.Scatterpolar(
+    r=radar_values,
+    theta=radar_categories,
+    fill='toself'
+))
+
+radar_fig.update_layout(
+    polar=dict(
+        radialaxis=dict(
+            visible=True,
+            range=[0, 1]
+        )
+    ),
+    showlegend=False
+)
+
+st.plotly_chart(radar_fig, use_container_width=True)
+
+# ---------------------------------------------------
+# OMICS CONTRIBUTION PLOT
 # ---------------------------------------------------
 
 st.header("📊 Omics Contribution Plot")
@@ -294,7 +337,7 @@ omics_df = pd.DataFrame({
     "Risk Score": [
         gene_risk,
         met_risk,
-        personal_lifestyle
+        final_lifestyle_risk
     ]
 })
 
@@ -302,12 +345,31 @@ bar_fig = px.bar(
     omics_df,
     x="Omics Layer",
     y="Risk Score",
-    text="Risk Score",
-    color="Omics Layer"
+    text="Risk Score"
+)
+
+st.plotly_chart(bar_fig, use_container_width=True)
+
+# ---------------------------------------------------
+# HEATMAP
+# ---------------------------------------------------
+
+st.header("🔥 Integrated Risk Heatmap")
+
+heatmap_df = pd.DataFrame({
+    "Transcriptomics": [gene_risk],
+    "Metabolomics": [met_risk],
+    "Lifestyle": [final_lifestyle_risk]
+})
+
+heatmap_fig = px.imshow(
+    heatmap_df,
+    text_auto=True,
+    aspect="auto"
 )
 
 st.plotly_chart(
-    bar_fig,
+    heatmap_fig,
     use_container_width=True
 )
 
@@ -338,6 +400,68 @@ st.dataframe(
     biomarker_df,
     use_container_width=True
 )
+
+# ---------------------------------------------------
+# PATHWAY INTERPRETATION
+# ---------------------------------------------------
+
+st.header("🧬 Biological Pathway Interpretation")
+
+st.info("""
+### Significant pathways identified
+
+• Complement activation  
+• Acute inflammatory response  
+• B-cell receptor signaling  
+• Immune signaling pathways  
+• Vascular inflammatory mechanisms  
+
+These pathways indicate inflammatory
+and immune-associated molecular
+signatures involved in atherosclerosis.
+""")
+
+st.markdown("---")
+
+# ---------------------------------------------------
+# RECOMMENDATIONS
+# ---------------------------------------------------
+
+st.header("💡 Personalized Recommendations")
+
+recommendations = []
+
+if smoking != "No":
+    recommendations.append("Reduce smoking")
+
+if exercise != "Regular":
+    recommendations.append("Increase physical activity")
+
+if diet != "Healthy":
+    recommendations.append("Improve dietary quality")
+
+if sleep < 6:
+    recommendations.append("Improve sleep duration")
+
+if cholesterol > 200:
+    recommendations.append("Monitor cholesterol levels")
+
+if bmi > 25:
+    recommendations.append("Maintain healthy BMI")
+
+if diabetes == "Yes":
+    recommendations.append("Monitor blood glucose regularly")
+
+if len(recommendations) == 0:
+
+    st.success("""
+    Current lifestyle profile appears favorable.
+    """)
+
+else:
+
+    for rec in recommendations:
+        st.write("✅", rec)
 
 # ---------------------------------------------------
 # AI INTERPRETATION
