@@ -10,30 +10,32 @@ from streamlit_folium import st_folium
 
 st.title("❤️ Prevention & Cardiologist Finder")
 
-
 st.markdown("---")
 
 # ---------------------------------------------------
-# PREVENTION SECTION
+# PREVENTION STRATEGIES
 # ---------------------------------------------------
 
-st.header("🛡️ How to Reduce Atherosclerosis Risk")
+st.header("🛡️ Prevention Strategies")
 
 prevention = [
     "Quit smoking",
     "Exercise regularly",
-    "Reduce salty and processed foods",
-    "Maintain healthy cholesterol levels",
+    "Reduce processed and salty foods",
+    "Maintain healthy cholesterol",
     "Control blood sugar",
-    "Manage stress effectively",
     "Improve sleep quality",
+    "Manage stress effectively",
     "Monitor blood pressure regularly"
 ]
 
-cols = st.columns(2)
+col1, col2 = st.columns(2)
 
 for i, item in enumerate(prevention):
-    cols[i % 2].success(item)
+    if i % 2 == 0:
+        col1.success(item)
+    else:
+        col2.success(item)
 
 st.markdown("---")
 
@@ -45,13 +47,13 @@ st.header("🥗 Recommended Heart-Healthy Foods")
 
 foods = [
     "Leafy vegetables",
-    "Oats and whole grains",
-    "Fish rich in omega-3",
-    "Nuts and seeds",
+    "Whole grains",
+    "Omega-3 rich fish",
     "Olive oil",
+    "Nuts and seeds",
     "Berries",
     "Green tea",
-    "Fruits rich in antioxidants"
+    "Fresh fruits"
 ]
 
 food_cols = st.columns(4)
@@ -62,18 +64,15 @@ for i, food in enumerate(foods):
 st.markdown("---")
 
 # ---------------------------------------------------
-# DOCTOR FINDER
+# CARDIOLOGIST FINDER
 # ---------------------------------------------------
 
-st.header("📍 Find Nearby Cardiologists")
+st.header("📍 Nearby Cardiologist Finder")
 
 st.info("""
-Enter your city or area name to find nearby cardiologists and heart hospitals.
+Enter your city or area name to locate nearby
+cardiologists and heart hospitals.
 """)
-
-# ---------------------------------------------------
-# LOCATION INPUT
-# ---------------------------------------------------
 
 location = st.text_input(
     "📌 Enter Location",
@@ -81,16 +80,10 @@ location = st.text_input(
 )
 
 # ---------------------------------------------------
-# GOOGLE API KEY
-# ---------------------------------------------------
-
-API_KEY = st.secrets["GOOGLE_MAPS_API_KEY"]
-
-# ---------------------------------------------------
 # SEARCH BUTTON
 # ---------------------------------------------------
 
-if st.button("🔍 Search Cardiologists"):
+if st.button("🔍 Find Cardiologists"):
 
     if location.strip() == "":
 
@@ -99,53 +92,80 @@ if st.button("🔍 Search Cardiologists"):
     else:
 
         # ---------------------------------------------------
-        # GEOCODING
+        # GEOCODING USING OPENSTREETMAP
         # ---------------------------------------------------
 
-        geo_url = (
-            "https://maps.googleapis.com/maps/api/geocode/json"
-            f"?address={location}"
-            f"&key={API_KEY}"
+        geocode_url = (
+            f"https://nominatim.openstreetmap.org/search"
+            f"?q={location}&format=json&limit=1"
         )
 
-        geo_response = requests.get(geo_url)
+        headers = {
+            "User-Agent": "streamlit-app"
+        }
+
+        geo_response = requests.get(
+            geocode_url,
+            headers=headers
+        )
+
         geo_data = geo_response.json()
 
-        if geo_data["status"] != "OK":
+        # ---------------------------------------------------
+        # LOCATION NOT FOUND
+        # ---------------------------------------------------
+
+        if len(geo_data) == 0:
 
             st.error("Location not found.")
 
         else:
 
-            lat = geo_data["results"][0]["geometry"]["location"]["lat"]
-            lng = geo_data["results"][0]["geometry"]["location"]["lng"]
+            lat = float(geo_data[0]["lat"])
+            lon = float(geo_data[0]["lon"])
+
+            st.success(f"Location Found: {location}")
 
             # ---------------------------------------------------
-            # FIND CARDIOLOGISTS
+            # OVERPASS QUERY
             # ---------------------------------------------------
 
-            places_url = (
-                "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-                f"?location={lat},{lng}"
-                "&radius=5000"
-                "&keyword=cardiologist"
-                f"&key={API_KEY}"
+            overpass_query = f"""
+            [out:json];
+            (
+              node
+                [amenity=hospital]
+                (around:5000,{lat},{lon});
+
+              node
+                [healthcare=doctor]
+                (around:5000,{lat},{lon});
+            );
+            out;
+            """
+
+            overpass_url = "https://overpass-api.de/api/interpreter"
+
+            response = requests.get(
+                overpass_url,
+                params={'data': overpass_query}
             )
 
-            places_response = requests.get(places_url)
-            places_data = places_response.json()
+            data = response.json()
 
             # ---------------------------------------------------
             # CREATE MAP
             # ---------------------------------------------------
 
             m = folium.Map(
-                location=[lat, lng],
+                location=[lat, lon],
                 zoom_start=12
             )
 
+            # User location marker
+
             folium.Marker(
-                [lat, lng],
+                [lat, lon],
                 tooltip="Search Location",
                 icon=folium.Icon(color="blue")
             ).add_to(m)
@@ -153,46 +173,32 @@ if st.button("🔍 Search Cardiologists"):
             hospitals = []
 
             # ---------------------------------------------------
-            # RESULTS
+            # ADD HOSPITALS
             # ---------------------------------------------------
 
-            for place in places_data.get("results", []):
+            for element in data.get("elements", []):
 
-                name = place["name"]
+                tags = element.get("tags", {})
 
-                address = place.get(
-                    "vicinity",
-                    "Address unavailable"
+                name = tags.get(
+                    "name",
+                    "Unnamed Hospital"
                 )
 
-                rating = place.get(
-                    "rating",
-                    "N/A"
-                )
-
-                p_lat = place["geometry"]["location"]["lat"]
-                p_lng = place["geometry"]["location"]["lng"]
-
-                google_maps_link = (
-                    f"https://www.google.com/maps/search/?api=1&query="
-                    f"{p_lat},{p_lng}"
-                )
+                hospital_lat = element.get("lat")
+                hospital_lon = element.get("lon")
 
                 hospitals.append({
-                    "Hospital / Doctor": name,
-                    "Address": address,
-                    "Rating": rating,
-                    "Google Maps": google_maps_link
+                    "Hospital / Clinic": name,
+                    "Latitude": hospital_lat,
+                    "Longitude": hospital_lon
                 })
 
-                # ---------------------------------------------------
-                # MAP MARKERS
-                # ---------------------------------------------------
+                # Add marker
 
                 folium.Marker(
-                    [p_lat, p_lng],
+                    [hospital_lat, hospital_lon],
                     tooltip=name,
-                    popup=address,
                     icon=folium.Icon(color="red")
                 ).add_to(m)
 
@@ -200,7 +206,7 @@ if st.button("🔍 Search Cardiologists"):
             # DISPLAY MAP
             # ---------------------------------------------------
 
-            st.subheader("🗺️ Nearby Cardiologists Map")
+            st.subheader("🗺️ Nearby Hospitals & Cardiologists")
 
             st_folium(
                 m,
@@ -212,7 +218,7 @@ if st.button("🔍 Search Cardiologists"):
             # DISPLAY TABLE
             # ---------------------------------------------------
 
-            st.subheader("🏥 Cardiologists & Heart Hospitals")
+            st.subheader("🏥 Nearby Medical Centers")
 
             if len(hospitals) > 0:
 
@@ -225,7 +231,7 @@ if st.button("🔍 Search Cardiologists"):
 
             else:
 
-                st.warning("No cardiologists found nearby.")
+                st.warning("No nearby hospitals found.")
 
 st.markdown("---")
 
@@ -234,8 +240,7 @@ st.markdown("---")
 # ---------------------------------------------------
 
 st.caption("""
-This feature uses Google Maps Places API
-to identify nearby cardiologists and hospitals.
+OpenStreetMap-powered nearby hospital finder.
 
-Not intended for emergency medical use.
+Educational and research-use platform only.
 """)
