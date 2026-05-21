@@ -60,11 +60,6 @@ to identify biological and lifestyle-associated
 signals linked with early atherosclerosis progression.
 """)
 
-st.image(
-    "https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=1400&auto=format&fit=crop",
-    use_container_width=True
-)
-
 # ---------------------------------------------------
 # OVERVIEW
 # ---------------------------------------------------
