@@ -4,6 +4,34 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 # ---------------------------------------------------
+# PAGE STYLING
+# ---------------------------------------------------
+
+st.markdown("""
+<style>
+
+.block-container {
+    padding-top: 2rem;
+}
+
+.stMetric {
+    background-color: white;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0px 2px 10px rgba(0,0,0,0.08);
+}
+
+.input-card {
+    background-color: #f8fbff;
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid #dce6f2;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------------------------------------------
 # LOAD DATASETS
 # ---------------------------------------------------
 
@@ -30,12 +58,80 @@ life_df = pd.read_excel(
 
 st.title("🫀 Multi-Omics Based Early Atherosclerosis Framework")
 
+
 st.markdown("""
 This framework integrates:
-- Transcriptomic biomarkers
-- Metabolomic signatures
-- Lifestyle-associated risk factors
+
+- 🧬 Transcriptomic biomarkers
+- 🧪 Metabolomic signatures
+- 🧍 Lifestyle-associated risk factors
+
+to interpret biological signals related to
+early atherosclerosis.
 """)
+
+st.markdown("---")
+
+# ---------------------------------------------------
+# USER INPUT SECTION
+# ---------------------------------------------------
+
+st.header("🧍 Personalized Lifestyle Assessment")
+
+col1, col2, col3 = st.columns(3)
+
+# ---------------------------------------------------
+# COLUMN 1
+# ---------------------------------------------------
+
+with col1:
+
+    smoking = st.selectbox(
+        "🚬 Smoking Habit",
+        ["No", "Occasional", "Frequent"]
+    )
+
+    exercise = st.selectbox(
+        "🏃 Exercise Frequency",
+        ["Regular", "Sometimes", "Rare"]
+    )
+
+    diet = st.selectbox(
+        "🥗 Diet Quality",
+        ["Healthy", "Moderate", "Poor"]
+    )
+
+# ---------------------------------------------------
+# COLUMN 2
+# ---------------------------------------------------
+
+with col2:
+
+    sleep = st.slider(
+        "😴 Sleep Hours",
+        3, 10, 7
+    )
+
+    bmi = st.slider(
+        "⚖️ BMI",
+        15.0, 40.0, 24.0
+    )
+
+# ---------------------------------------------------
+# COLUMN 3
+# ---------------------------------------------------
+
+with col3:
+
+    cholesterol = st.slider(
+        "🩸 Cholesterol Level",
+        100, 350, 180
+    )
+
+    diabetes = st.selectbox(
+        "🩺 Diabetes",
+        ["No", "Yes"]
+    )
 
 st.markdown("---")
 
@@ -62,48 +158,7 @@ base_met_risk = (
 ) * 0.2
 
 # ---------------------------------------------------
-# SIDEBAR INPUTS
-# ---------------------------------------------------
-
-st.sidebar.header("🧍 Lifestyle Inputs")
-
-smoking = st.sidebar.selectbox(
-    "Smoking Habit",
-    ["No", "Occasional", "Frequent"]
-)
-
-exercise = st.sidebar.selectbox(
-    "Exercise Frequency",
-    ["Regular", "Sometimes", "Rare"]
-)
-
-diet = st.sidebar.selectbox(
-    "Diet Quality",
-    ["Healthy", "Moderate", "Poor"]
-)
-
-sleep = st.sidebar.slider(
-    "Sleep Hours",
-    3, 10, 7
-)
-
-bmi = st.sidebar.slider(
-    "BMI",
-    15.0, 40.0, 24.0
-)
-
-cholesterol = st.sidebar.slider(
-    "Cholesterol Level",
-    100, 350, 180
-)
-
-diabetes = st.sidebar.selectbox(
-    "Diabetes",
-    ["No", "Yes"]
-)
-
-# ---------------------------------------------------
-# LIFESTYLE SCORE
+# PERSONALIZED LIFESTYLE SCORE
 # ---------------------------------------------------
 
 personal_lifestyle = 0
@@ -162,7 +217,7 @@ overall_risk = (
 )
 
 # ---------------------------------------------------
-# RISK LABEL
+# RISK CATEGORY
 # ---------------------------------------------------
 
 if overall_risk < 0.40:
@@ -185,13 +240,28 @@ st.header("📊 Integrated Risk Summary")
 
 m1, m2, m3 = st.columns(3)
 
-m1.metric("Transcriptomic Risk", f"{gene_risk:.2f}")
-m2.metric("Metabolomic Risk", f"{met_risk:.2f}")
-m3.metric("Lifestyle Risk", f"{personal_lifestyle:.2f}")
+m1.metric(
+    "Transcriptomic Risk",
+    f"{gene_risk:.2f}"
+)
+
+m2.metric(
+    "Metabolomic Risk",
+    f"{met_risk:.2f}"
+)
+
+m3.metric(
+    "Lifestyle Risk",
+    f"{personal_lifestyle:.2f}"
+)
+
+st.markdown("---")
 
 # ---------------------------------------------------
-# GAUGE
+# GAUGE CHART
 # ---------------------------------------------------
+
+st.subheader("🧭 Overall Risk Gauge")
 
 gauge_fig = go.Figure(go.Indicator(
     mode="gauge+number",
@@ -199,7 +269,12 @@ gauge_fig = go.Figure(go.Indicator(
     title={'text': "Integrated Risk Score"},
     gauge={
         'axis': {'range': [0, 1]},
-        'bar': {'color': risk_color}
+        'bar': {'color': risk_color},
+        'steps': [
+            {'range': [0, 0.33], 'color': "lightgreen"},
+            {'range': [0.33, 0.66], 'color': "gold"},
+            {'range': [0.66, 1], 'color': "salmon"}
+        ]
     }
 ))
 
@@ -210,9 +285,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+st.markdown("---")
+
 # ---------------------------------------------------
-# BAR CHART
+# OMICS CONTRIBUTION
 # ---------------------------------------------------
+
+st.header("📊 Omics Contribution Plot")
 
 omics_df = pd.DataFrame({
     "Omics Layer": [
@@ -231,7 +310,8 @@ bar_fig = px.bar(
     omics_df,
     x="Omics Layer",
     y="Risk Score",
-    text="Risk Score"
+    text="Risk Score",
+    color="Omics Layer"
 )
 
 st.plotly_chart(bar_fig, use_container_width=True)
@@ -250,7 +330,7 @@ biomarker_df = pd.DataFrame({
         "SERPINA1",
         "JAK3"
     ],
-    "Role": [
+    "Biological Role": [
         "Chromatin regulation",
         "Immune signaling",
         "Cell signaling",
@@ -259,4 +339,51 @@ biomarker_df = pd.DataFrame({
     ]
 })
 
-st.dataframe(biomarker_df, use_container_width=True)
+st.dataframe(
+    biomarker_df,
+    use_container_width=True
+)
+
+# ---------------------------------------------------
+# AI INTERPRETATION
+# ---------------------------------------------------
+
+st.header("🧠 AI-Based Interpretation")
+
+if risk_label == "LOW RISK":
+
+    st.success("""
+    Integrated biological signals suggest
+    relatively low atherosclerotic activity.
+    """)
+
+elif risk_label == "MODERATE RISK":
+
+    st.warning("""
+    Moderate inflammatory and metabolic
+    signatures associated with early
+    atherosclerotic progression detected.
+    """)
+
+else:
+
+    st.error("""
+    Elevated inflammatory and metabolic
+    signatures associated with vascular
+    dysfunction and plaque progression detected.
+    """)
+
+# ---------------------------------------------------
+# FOOTER
+# ---------------------------------------------------
+
+st.markdown("---")
+
+st.caption("""
+Educational computational framework for
+multi-omics-based early atherosclerosis
+risk interpretation.
+
+Not intended for clinical diagnosis.
+""")
+```
