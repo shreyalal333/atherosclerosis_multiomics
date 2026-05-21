@@ -2,11 +2,6 @@ import streamlit as st
 
 st.title("🧬 Understanding Atherosclerosis")
 
-st.image(
-    "https://images.unsplash.com/photo-1584515933487-779824d29309?q=80&w=1200&auto=format&fit=crop",
-    use_container_width=True
-)
-
 st.markdown("---")
 
 st.header("What is Atherosclerosis?")
