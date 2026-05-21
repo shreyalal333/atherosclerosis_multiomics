@@ -67,180 +67,25 @@ st.markdown("---")
 # CARDIOLOGIST FINDER
 # ---------------------------------------------------
 
-st.header("📍 Nearby Cardiologist Finder")
-
-st.info("""
-Enter your city or area name to locate nearby
-cardiologists and heart hospitals.
-""")
+import urllib.parse
 
 location = st.text_input(
-    "📌 Enter Location",
-    placeholder="Example: Bangalore"
+    "Enter your city"
 )
 
-# ---------------------------------------------------
-# SEARCH BUTTON
-# ---------------------------------------------------
+if st.button("Find Cardiologists"):
 
-if st.button("🔍 Find Cardiologists"):
+    if location:
 
-    if location.strip() == "":
+        encoded_location = urllib.parse.quote(location)
 
-        st.warning("Please enter a location.")
-
-    else:
-
-        # ---------------------------------------------------
-        # GEOCODING USING OPENSTREETMAP
-        # ---------------------------------------------------
-
-        geocode_url = (
-            f"https://nominatim.openstreetmap.org/search"
-            f"?q={location}&format=json&limit=1"
+        maps_url = (
+            "https://www.google.com/maps/search/"
+            f"cardiologist+near+{encoded_location}"
         )
 
-        headers = {
-            "User-Agent": "streamlit-app"
-        }
+        st.success("Click below to view nearby cardiologists.")
 
-        geo_response = requests.get(
-            geocode_url,
-            headers=headers
+        st.markdown(
+            f"[Open Google Maps]({maps_url})"
         )
-
-        geo_data = geo_response.json()
-
-        # ---------------------------------------------------
-        # LOCATION NOT FOUND
-        # ---------------------------------------------------
-
-        if len(geo_data) == 0:
-
-            st.error("Location not found.")
-
-        else:
-
-            lat = float(geo_data[0]["lat"])
-            lon = float(geo_data[0]["lon"])
-
-            st.success(f"Location Found: {location}")
-
-            # ---------------------------------------------------
-            # OVERPASS QUERY
-            # ---------------------------------------------------
-
-            overpass_query = f"""
-            [out:json];
-            (
-              node
-                [amenity=hospital]
-                (around:5000,{lat},{lon});
-
-              node
-                [healthcare=doctor]
-                (around:5000,{lat},{lon});
-            );
-            out;
-            """
-
-            overpass_url = "https://overpass-api.de/api/interpreter"
-
-            response = requests.get(
-                overpass_url,
-                params={'data': overpass_query}
-            )
-
-            data = response.json()
-
-            # ---------------------------------------------------
-            # CREATE MAP
-            # ---------------------------------------------------
-
-            m = folium.Map(
-                location=[lat, lon],
-                zoom_start=12
-            )
-
-            # User location marker
-
-            folium.Marker(
-                [lat, lon],
-                tooltip="Search Location",
-                icon=folium.Icon(color="blue")
-            ).add_to(m)
-
-            hospitals = []
-
-            # ---------------------------------------------------
-            # ADD HOSPITALS
-            # ---------------------------------------------------
-
-            for element in data.get("elements", []):
-
-                tags = element.get("tags", {})
-
-                name = tags.get(
-                    "name",
-                    "Unnamed Hospital"
-                )
-
-                hospital_lat = element.get("lat")
-                hospital_lon = element.get("lon")
-
-                hospitals.append({
-                    "Hospital / Clinic": name,
-                    "Latitude": hospital_lat,
-                    "Longitude": hospital_lon
-                })
-
-                # Add marker
-
-                folium.Marker(
-                    [hospital_lat, hospital_lon],
-                    tooltip=name,
-                    icon=folium.Icon(color="red")
-                ).add_to(m)
-
-            # ---------------------------------------------------
-            # DISPLAY MAP
-            # ---------------------------------------------------
-
-            st.subheader("🗺️ Nearby Hospitals & Cardiologists")
-
-            st_folium(
-                m,
-                width=1000,
-                height=500
-            )
-
-            # ---------------------------------------------------
-            # DISPLAY TABLE
-            # ---------------------------------------------------
-
-            st.subheader("🏥 Nearby Medical Centers")
-
-            if len(hospitals) > 0:
-
-                hospital_df = pd.DataFrame(hospitals)
-
-                st.dataframe(
-                    hospital_df,
-                    use_container_width=True
-                )
-
-            else:
-
-                st.warning("No nearby hospitals found.")
-
-st.markdown("---")
-
-# ---------------------------------------------------
-# FOOTER
-# ---------------------------------------------------
-
-st.caption("""
-OpenStreetMap-powered nearby hospital finder.
-
-Educational and research-use platform only.
-""")
