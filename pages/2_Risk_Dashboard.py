@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 # ---------------------------------------------------
-# PAGE STYLING
+# CUSTOM STYLING
 # ---------------------------------------------------
 
 st.markdown("""
@@ -17,15 +17,8 @@ st.markdown("""
 .stMetric {
     background-color: white;
     padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0px 2px 10px rgba(0,0,0,0.08);
-}
-
-.input-card {
-    background-color: #f8fbff;
-    padding: 20px;
-    border-radius: 15px;
-    border: 1px solid #dce6f2;
+    border-radius: 10px;
+    box-shadow: 0px 2px 8px rgba(0,0,0,0.08);
 }
 
 </style>
@@ -58,13 +51,12 @@ life_df = pd.read_excel(
 
 st.title("🫀 Multi-Omics Based Early Atherosclerosis Framework")
 
-
 st.markdown("""
 This framework integrates:
 
-- 🧬 Transcriptomic biomarkers
-- 🧪 Metabolomic signatures
-- 🧍 Lifestyle-associated risk factors
+- Transcriptomic biomarkers
+- Metabolomic signatures
+- Lifestyle-associated risk factors
 
 to interpret biological signals related to
 early atherosclerosis.
@@ -73,63 +65,57 @@ early atherosclerosis.
 st.markdown("---")
 
 # ---------------------------------------------------
-# USER INPUT SECTION
+# INPUT SECTION
 # ---------------------------------------------------
 
 st.header("🧍 Personalized Lifestyle Assessment")
 
 col1, col2, col3 = st.columns(3)
 
-# ---------------------------------------------------
-# COLUMN 1
-# ---------------------------------------------------
-
 with col1:
 
     smoking = st.selectbox(
-        "🚬 Smoking Habit",
+        "Smoking Habit",
         ["No", "Occasional", "Frequent"]
     )
 
     exercise = st.selectbox(
-        "🏃 Exercise Frequency",
+        "Exercise Frequency",
         ["Regular", "Sometimes", "Rare"]
     )
 
     diet = st.selectbox(
-        "🥗 Diet Quality",
+        "Diet Quality",
         ["Healthy", "Moderate", "Poor"]
     )
-
-# ---------------------------------------------------
-# COLUMN 2
-# ---------------------------------------------------
 
 with col2:
 
     sleep = st.slider(
-        "😴 Sleep Hours",
-        3, 10, 7
+        "Sleep Hours",
+        3,
+        10,
+        7
     )
 
     bmi = st.slider(
-        "⚖️ BMI",
-        15.0, 40.0, 24.0
+        "BMI",
+        15.0,
+        40.0,
+        24.0
     )
-
-# ---------------------------------------------------
-# COLUMN 3
-# ---------------------------------------------------
 
 with col3:
 
     cholesterol = st.slider(
-        "🩸 Cholesterol Level",
-        100, 350, 180
+        "Cholesterol Level",
+        100,
+        350,
+        180
     )
 
     diabetes = st.selectbox(
-        "🩺 Diabetes",
+        "Diabetes",
         ["No", "Yes"]
     )
 
@@ -158,7 +144,7 @@ base_met_risk = (
 ) * 0.2
 
 # ---------------------------------------------------
-# PERSONALIZED LIFESTYLE SCORE
+# LIFESTYLE SCORE
 # ---------------------------------------------------
 
 personal_lifestyle = 0
@@ -221,14 +207,17 @@ overall_risk = (
 # ---------------------------------------------------
 
 if overall_risk < 0.40:
+
     risk_label = "LOW RISK"
     risk_color = "green"
 
 elif overall_risk < 0.65:
+
     risk_label = "MODERATE RISK"
     risk_color = "orange"
 
 else:
+
     risk_label = "HIGH RISK"
     risk_color = "red"
 
@@ -278,7 +267,10 @@ gauge_fig = go.Figure(go.Indicator(
     }
 ))
 
-st.plotly_chart(gauge_fig, use_container_width=True)
+st.plotly_chart(
+    gauge_fig,
+    use_container_width=True
+)
 
 st.markdown(
     f"<h2 style='color:{risk_color};'>{risk_label}</h2>",
@@ -288,7 +280,7 @@ st.markdown(
 st.markdown("---")
 
 # ---------------------------------------------------
-# OMICS CONTRIBUTION
+# BAR CHART
 # ---------------------------------------------------
 
 st.header("📊 Omics Contribution Plot")
@@ -314,7 +306,10 @@ bar_fig = px.bar(
     color="Omics Layer"
 )
 
-st.plotly_chart(bar_fig, use_container_width=True)
+st.plotly_chart(
+    bar_fig,
+    use_container_width=True
+)
 
 # ---------------------------------------------------
 # BIOMARKERS
@@ -386,4 +381,3 @@ risk interpretation.
 
 Not intended for clinical diagnosis.
 """)
-```
